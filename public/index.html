@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>System zamówień / ticketów</title>
+  <style>
+    :root {
+      --bg: #000000;
+      --panel: #ffffff;
+      --line: #000000;
+      --text: #f3f4f6;
+      --muted: #9ca3af;
+      --accent: #d97706;
+      --accent-2: #92400e;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: linear-gradient(180deg, #0b1220 0%, #111827 100%);
+      color: var(--text);
+    }
+    .wrap {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+    }
+    .sub {
+      color: var(--muted);
+      margin-bottom: 24px;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+      gap: 20px;
+    }
+    .card {
+      background: rgba(31, 41, 55, 0.94);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    .card-head {
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(15, 23, 42, 0.6);
+    }
+    .card-body { padding: 20px; }
+    .row { display: grid; gap: 12px; margin-bottom: 12px; }
+    .row-2 { grid-template-columns: 1fr 1fr; }
+    input, textarea, button {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      padding: 12px 14px;
+      font-size: 14px;
+    }
+    input, textarea {
+      background: #0b1220;
+      color: var(--text);
+    }
+    textarea { min-height: 100px; resize: vertical; }
+    button {
+      background: var(--accent);
+      color: white;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+    }
+    button:hover { background: var(--accent-2); }
+    .table-wrap {
+  overflow: auto;
+  max-height: 525px;
+}
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 14px 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+      font-size: 14px;
+    }
+    th { color: var(--muted); font-weight: 600; }
+    tr.ticket-row { cursor: pointer; }
+    tr.ticket-row:hover { background: rgba(255,255,255,0.03); }
+    tr.ticket-row.active { background: rgba(217,119,6,0.12); }
+    .pill {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(217,119,6,0.15);
+      border: 1px solid rgba(217,119,6,0.35);
+      color: #fdba74;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .muted { color: var(--muted); }
+    .ticket-meta {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .reply-tree {
+      margin-top: 20px;
+      display: grid;
+      gap: 12px;
+    }
+    .reply {
+      border: 1px solid var(--line);
+      background: rgba(11, 18, 32, 0.7);
+      border-radius: 14px;
+      padding: 14px;
+    }
+    .reply-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    .reply-children {
+      margin-top: 12px;
+      margin-left: 24px;
+      border-left: 2px solid rgba(255,255,255,0.08);
+      padding-left: 12px;
+      display: grid;
+      gap: 12px;
+    }
+    .reply-actions {
+      margin-top: 10px;
+    }
+    .small-btn {
+      width: auto;
+      padding: 8px 12px;
+      font-size: 12px;
+      background: #1d4ed8;
+    }
+    .small-btn:hover { background: #1e40af; }
+    .inline-form {
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--line);
+      display: none;
+    }
+    .inline-form.open { display: block; }
+    .empty {
+      color: var(--muted);
+      padding: 20px 0;
+    }
+    @media (max-width: 980px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>System zamówień / ticketów</h1>
+    <div class="sub">Tickety, flairy, ręczne odpowiedzi i status z ostatniego flairu.</div>
+
+    <div class="layout">
+      <div class="card">
+        <div class="card-head"><strong>Nowe zamówienie</strong></div>
+        <div class="card-body">
+          <form id="ticket-form">
+           <div class="row row-2">
+  <input id="ticket-number" placeholder="Numer zamówienia, np. ZAM-003" required />
+  <input id="ticket-title" placeholder="Tytuł zamówienia" required />
+</div>
+<div class="row row-2">
+  <input id="ticket-flair" placeholder="Początkowy flair, np. Nowe" />
+  <input id="ticket-value" type="number" min="0" step="0.01" placeholder="Wartość zamówienia" />
+</div>
+<div class="row">
+  <input id="ticket-search" placeholder="Szukaj po numerze lub tytule" />
+</div>
+            <div class="row">
+              <textarea id="ticket-description" placeholder="Opis zamówienia"></textarea>
+            </div>
+            <button type="submit">Dodaj zamówienie</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><strong>Lista zamówień</strong></div>
+        <div class="card-body table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Status</th>
+                <th>Numer</th>
+                <th>Tytuł</th>
+                <th>Wartość</th>
+                <th>Data aktualizacji</th>
+              </tr>
+            </thead>
+            <tbody id="tickets-body"></tbody>
+          </table>
+        </div>
+        <div id="tickets-total" class="card-body" style="padding-top:0; color:#9ca3af; font-weight:700;">
+  Łączna suma: 0 zł
+</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:20px;">
+      <div class="card-head"><strong>Szczegóły zamówienia</strong></div>
+      <div class="card-body" id="details"></div>
+    </div>
+  </div>
+
+  <script>
+    let tickets = [];
+    let selectedTicketId = null;
+    let searchValue = '';
+
+    const ticketsBody = document.getElementById('tickets-body');
+    const details = document.getElementById('details');
+    const ticketForm = document.getElementById('ticket-form');
+    const searchInput = document.getElementById('ticket-search');
+    const ticketsTotal = document.getElementById('tickets-total');
+
+    function escapeHtml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function formatDate(date) {
+      const d = new Date(date);
+      if (isNaN(d)) return date || '';
+      return d.toLocaleString('pl-PL');
+    }
+
+    function formatCurrency(value) {
+  return new Intl.NumberFormat('pl-PL', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(Number(value) || 0) + ' zł';
+}
+
+    async function fetchTickets() {
+      const res = await fetch('/api/tickets');
+      tickets = await res.json();
+      renderTickets();
+
+      if (!selectedTicketId && tickets.length) {
+        selectedTicketId = tickets[0].id;
+      }
+
+      if (selectedTicketId) {
+        await renderDetails(selectedTicketId);
+      } else {
+        details.innerHTML = '<div class="empty">Brak zamówień.</div>';
+      }
+    }
+
+    function renderTickets() {
+      const filtered = tickets.filter(t => {
+        const hay = (t.number + ' ' + t.title).toLowerCase();
+        return hay.includes(searchValue.toLowerCase());
+      });
+
+      if (!filtered.length) {
+  ticketsBody.innerHTML = '<tr><td colspan="5" class="muted">Brak wyników.</td></tr>';
+  ticketsTotal.innerHTML = 'Łączna suma: 0,00 zł';
+  return;
+}
+
+ticketsBody.innerHTML = filtered.map(ticket => `
+  <tr class="ticket-row ${ticket.id === selectedTicketId ? 'active' : ''}" data-id="${ticket.id}">
+    <td><span class="pill">${escapeHtml(ticket.status || '')}</span></td>
+    <td>${escapeHtml(ticket.number)}</td>
+    <td>${escapeHtml(ticket.title)}</td>
+    <td>${escapeHtml(formatCurrency(ticket.value))}</td>
+    <td>${escapeHtml(formatDate(ticket.updated_at))}</td>
+  </tr>
+`).join('');
+const total = filtered.reduce((sum, ticket) => sum + (Number(ticket.value) || 0), 0);
+ticketsTotal.innerHTML = 'Łączna suma: ' + escapeHtml(formatCurrency(total));
+      document.querySelectorAll('.ticket-row').forEach(row => {
+        row.addEventListener('click', async () => {
+          selectedTicketId = Number(row.dataset.id);
+          renderTickets();
+          await renderDetails(selectedTicketId);
+        });
+      });
+    }
+
+    function renderReplyNode(reply, ticketId) {
+      const childrenHtml = reply.children && reply.children.length
+        ? '<div class="reply-children">' + reply.children.map(child => renderReplyNode(child, ticketId)).join('') + '</div>'
+        : '';
+
+      return `
+        <div class="reply">
+          <div class="reply-head">
+            <div><span class="pill">${escapeHtml(reply.flair || '')}</span></div>
+            <div class="muted">${escapeHtml(formatDate(reply.created_at))}</div>
+          </div>
+          <div>${escapeHtml(reply.content).replace(/\n/g, '<br>')}</div>
+          <div class="reply-actions">
+            <button class="small-btn" onclick="toggleReplyForm(${reply.id})">Odpowiedz</button>
+          </div>
+          <div id="reply-form-${reply.id}" class="inline-form">
+            <form onsubmit="submitReply(event, ${ticketId}, ${reply.id})">
+              <div class="row">
+                <input name="flair" placeholder="Flair odpowiedzi" />
+              </div>
+              <div class="row">
+                <textarea name="content" placeholder="Treść odpowiedzi" required></textarea>
+              </div>
+              <button type="submit">Dodaj odpowiedź</button>
+            </form>
+          </div>
+          ${childrenHtml}
+        </div>
+      `;
+    }
+
+    window.toggleReplyForm = function(replyId) {
+      const el = document.getElementById(`reply-form-${replyId}`);
+      el.classList.toggle('open');
+    };
+
+    window.submitReply = async function(event, ticketId, parentReplyId) {
+      event.preventDefault();
+      const form = event.target;
+      const flair = form.flair.value.trim();
+      const content = form.content.value.trim();
+
+      if (!content) return;
+
+      const res = await fetch(`/api/tickets/${ticketId}/replies`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          parent_reply_id: parentReplyId,
+          flair,
+          content
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Błąd przy dodawaniu odpowiedzi.');
+        return;
+      }
+
+      await fetchTickets();
+    };
+
+    async function renderDetails(ticketId) {
+      const res = await fetch(`/api/tickets/${ticketId}`);
+      const ticket = await res.json();
+
+      if (!res.ok) {
+        details.innerHTML = `<div class="empty">${escapeHtml(ticket.error || 'Błąd')}</div>`;
+        return;
+      }
+
+details.innerHTML = `
+  <div>
+    <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start; flex-wrap:wrap;">
+      <div>
+        <h2 style="margin:0 0 6px;">${escapeHtml(ticket.number)} — ${escapeHtml(ticket.title)}</h2>
+        <div><span class="pill">${escapeHtml(ticket.status || '')}</span></div>
+      </div>
+      <div>
+        <button id="delete-ticket-btn" style="background:#b91c1c;">Usuń zamówienie</button>
+      </div>
+    </div>
+    <div class="ticket-meta">
+      <span>Utworzono: ${escapeHtml(formatDate(ticket.created_at))}</span>
+      <span>Ostatnia zmiana: ${escapeHtml(formatDate(ticket.updated_at))}</span>
+    </div>
+          <div class="ticket-meta">
+            <span>Utworzono: ${escapeHtml(formatDate(ticket.created_at))}</span>
+            <span>Ostatnia zmiana: ${escapeHtml(formatDate(ticket.updated_at))}</span>
+          </div>
+
+          <div style="margin-top:16px; white-space:pre-wrap;">${escapeHtml(ticket.description || '')}</div>
+
+          <div class="card" style="margin-top:20px;">
+            <div class="card-head"><strong>Dodaj odpowiedź główną</strong></div>
+            <div class="card-body">
+              <form id="root-reply-form">
+                <div class="row row-2">
+                  <input id="root-reply-flair" placeholder="Flair odpowiedzi" />
+                  <div class="muted" style="display:flex; align-items:center;">Ostatni flair ustawi status w tabeli.</div>
+                </div>
+                <div class="row">
+                  <textarea id="root-reply-content" placeholder="Treść odpowiedzi" required></textarea>
+                </div>
+                <button type="submit">Dodaj odpowiedź</button>
+              </form>
+            </div>
+          </div>
+
+          <div class="reply-tree">
+            ${ticket.replies.length
+              ? ticket.replies.map(reply => renderReplyNode(reply, ticket.id)).join('')
+              : '<div class="empty">Brak odpowiedzi.</div>'}
+          </div>
+        </div>
+      `;
+
+        const deleteBtn = document.getElementById('delete-ticket-btn');
+deleteBtn.addEventListener('click', async () => {
+  const confirmed = confirm(`Usunąć zamówienie ${ticket.number}?`);
+  if (!confirmed) return;
+
+  const res = await fetch(`/api/tickets/${ticketId}`, {
+    method: 'DELETE'
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    alert(data.error || 'Błąd przy usuwaniu zamówienia.');
+    return;
+  }
+
+  selectedTicketId = null;
+  details.innerHTML = '<div class="empty">Zamówienie usunięte.</div>';
+  await fetchTickets();
+});
+
+      const form = document.getElementById('root-reply-form');
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+
+        const flair = document.getElementById('root-reply-flair').value.trim();
+        const content = document.getElementById('root-reply-content').value.trim();
+
+        if (!content) return;
+
+        const res = await fetch(`/api/tickets/${ticketId}/replies`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            flair,
+            content,
+            parent_reply_id: null
+          })
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.error || 'Błąd przy dodawaniu odpowiedzi.');
+          return;
+        }
+
+        await fetchTickets();
+      });
+    }
+
+    ticketForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      const number = document.getElementById('ticket-number').value.trim();
+      const title = document.getElementById('ticket-title').value.trim();
+      const description = document.getElementById('ticket-description').value.trim();
+      const flair = document.getElementById('ticket-flair').value.trim();
+      const value = document.getElementById('ticket-value').value.trim();
+
+      const res = await fetch('/api/tickets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ number, title, description, flair, value })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Błąd przy dodawaniu zamówienia.');
+        return;
+      }
+
+      ticketForm.reset();
+      selectedTicketId = data.id;
+      await fetchTickets();
+    });
+
+    searchInput.addEventListener('input', (e) => {
+      searchValue = e.target.value || '';
+      renderTickets();
+    });
+
+    fetchTickets();
+  </script>
+</body>
+</html>
