@@ -383,7 +383,8 @@ details.innerHTML = `
         <h2 style="margin:0 0 6px;">${escapeHtml(ticket.number)} — ${escapeHtml(ticket.title)}</h2>
         <div><span class="pill">${escapeHtml(ticket.status || '')}</span></div>
       </div>
-      <div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button id="edit-value-btn" style="background:#2563eb;">Zmień wartość</button>
         <button id="delete-ticket-btn" style="background:#b91c1c;">Usuń zamówienie</button>
       </div>
     </div>
@@ -421,6 +422,36 @@ details.innerHTML = `
           </div>
         </div>
       `;
+
+
+      const editValueBtn = document.getElementById('edit-value-btn');
+editValueBtn.addEventListener('click', async () => {
+  const currentValue = Number(ticket.value) || 0;
+  const newValueRaw = prompt('Podaj nową wartość zamówienia:', currentValue);
+
+  if (newValueRaw === null) return;
+
+  const newValue = Number(String(newValueRaw).replace(',', '.'));
+  if (!Number.isFinite(newValue) || newValue < 0) {
+    alert('Podaj poprawną wartość.');
+    return;
+  }
+
+  const res = await fetch(`/api/tickets/${ticketId}/value`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ value: newValue })
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    alert(data.error || 'Błąd przy zmianie wartości.');
+    return;
+  }
+
+  await fetchTickets();
+});
 
         const deleteBtn = document.getElementById('delete-ticket-btn');
 deleteBtn.addEventListener('click', async () => {

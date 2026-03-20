@@ -234,6 +234,32 @@ app.post('/api/tickets/:id/replies', (req, res) => {
   });
 });
 
+app.put('/api/tickets/:id/value', (req, res) => {
+  const ticketId = Number(req.params.id);
+  const { value } = req.body || {};
+
+  const exists = db.prepare(`SELECT id FROM tickets WHERE id = ?`).get(ticketId);
+  if (!exists) {
+    res.status(404).json({ error: 'Nie znaleziono zamówienia.' });
+    return;
+  }
+
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue) || numericValue < 0) {
+    res.status(400).json({ error: 'Nieprawidłowa wartość.' });
+    return;
+  }
+
+  db.prepare(`
+    UPDATE tickets
+    SET value = ?, updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `).run(numericValue, ticketId);
+
+  const updated = db.prepare(`SELECT * FROM tickets WHERE id = ?`).get(ticketId);
+  res.json(updated);
+});
+
 app.get('/', (_req, res) => {
   res.sendFile(path.join(process.cwd(), 'public', 'index.html'));
 });
