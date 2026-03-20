@@ -3,12 +3,13 @@ const Database = require('better-sqlite3');
 const path = require('path');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
+const DB_FILE = process.env.DB_FILE || 'tickets.db';
 
 app.use(express.json());
 app.use(express.static(path.join(process.cwd(), 'public')));
 
-const db = new Database('tickets.db');
+const db = new Database(DB_FILE);
 db.pragma('journal_mode = WAL');
 
 db.exec(`
